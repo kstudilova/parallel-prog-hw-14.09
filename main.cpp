@@ -3,6 +3,9 @@
 #include <functional>
 #include <vector>
 #include <stdexcept>
+#include <chrono>
+
+#include "clicker.hpp"
 
 using data_t = std::vector< unsigned long long >;
 using value_t = data_t::value_type;
@@ -45,8 +48,15 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  data_t data = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 };
-  size_t size = data.size();
+  const size_t size = 1'000'000;
+  data_t data(size);
+
+  for (size_t i = 0; i < size; ++i)
+  {
+    data[i] = 1;
+  }
+
+  Clicker clicker;
 
   size_t partSize = size / threadCount;
 
@@ -79,6 +89,9 @@ int main(int argc, char* argv[])
     res += sums[i];
   }
 
+  double time = clicker.millisec();
+
   std::cout << res << '\n';
+  std::cout << time << " ms\n";
   return 0;
 }
