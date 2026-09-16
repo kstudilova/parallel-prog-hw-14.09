@@ -2,6 +2,7 @@
 #include <thread>
 #include <functional>
 #include <vector>
+#include <stdexcept>
 
 using data_t = std::vector< unsigned long long >;
 using value_t = data_t::value_type;
@@ -15,9 +16,34 @@ void sumPart(const data_t& data, size_t begin, size_t end, value_t& result)
   }
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-  size_t threadCount = 4;
+  if (argc != 2)
+  {
+    std::cerr << "Wrong number of arguments\n";
+    return 1;
+  }
+
+  if (argv[1][0] == '-')
+  {
+    std::cerr << "Threads number must be positive\n";
+    return 1;
+  }
+
+  size_t threadCount = 0;
+  try
+  {
+    threadCount = std::stoul(argv[1]);
+    if (threadCount == 0)
+    {
+      throw std::invalid_argument("Number of threads can't be 0");
+    }
+  }
+  catch(const std::exception& e)
+  {
+    std::cerr << "Invalid input" << '\n';
+    return 1;
+  }
 
   data_t data = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 };
   size_t size = data.size();
