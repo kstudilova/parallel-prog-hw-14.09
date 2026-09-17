@@ -1,23 +1,23 @@
 #include <iostream>
-#include <thread>
 #include <functional>
 #include <vector>
 #include <stdexcept>
 #include <algorithm>
-#include <chrono>
+#include <future>
 
 #include "clicker.hpp"
 
 using data_t = std::vector< unsigned long long >;
 using value_t = data_t::value_type;
 
-void sumPart(const data_t& data, size_t begin, size_t end, value_t& result)
+value_t sumPart(const data_t& data, size_t begin, size_t end)
 {
-  result = 0;
+  value_t result = 0;
   for (size_t i = begin; i < end; ++i)
   {
     result += data[i];
   }
+  return result;
 }
 
 int main(int argc, char* argv[])
@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
       throw std::invalid_argument("Number of threads can't be 0");
     }
   }
-  catch(const std::exception& e)
+  catch(const std::exception&)
   {
     std::cerr << "Invalid input" << '\n';
     return 1;
@@ -66,8 +66,8 @@ int main(int argc, char* argv[])
 
     size_t partSize = size / threadCount;
 
-    std::vector< std::thread > threads;
-    std::vector< value_t > sums(threadCount);
+    std::vector< std::future< value_t > > futures;
+    futures.reserve(threadCount);
 
     for (size_t i = 0; i < threadCount; ++i)
     {
@@ -81,18 +81,13 @@ int main(int argc, char* argv[])
       {
         end = (i + 1) * partSize;
       }
-      threads.push_back(std::thread(sumPart, std::cref(data), begin, end, std::ref(sums[i])));
-    }
-
-    for (size_t i = 0; i < threads.size(); ++i)
-    {
-      threads[i].join();
+      futures.push_back(std::async(std::launch::async, sumPart, std::cref(data), begin, end));
     }
 
     res = 0;
-    for (size_t i = 0; i < sums.size(); ++i)
+    for (size_t i = 0; i < futures.size(); ++i)
     {
-      res += sums[i];
+      res += futures[i].get();
     }
 
     times[attempt] = clicker.millisec();
