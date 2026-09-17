@@ -3,6 +3,7 @@
 #include <functional>
 #include <vector>
 #include <stdexcept>
+#include <algorithm>
 #include <chrono>
 
 #include "clicker.hpp"
@@ -48,7 +49,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  const size_t size = 1'000'000;
+  constexpr size_t size = 1'000'000'000;
   data_t data(size);
 
   for (size_t i = 0; i < size; ++i)
@@ -56,42 +57,55 @@ int main(int argc, char* argv[])
     data[i] = 1;
   }
 
-  Clicker clicker;
-
-  size_t partSize = size / threadCount;
-
-  std::vector< std::thread > threads;
-  std::vector< value_t > sums(threadCount);
-
-  for (size_t i = 0; i < threadCount; ++i)
-  {
-    size_t begin, end;
-    begin = i * partSize;
-    if (i == threadCount - 1)
-    {
-      end = size;
-    }
-    else
-    {
-      end = (i + 1) * partSize;
-    }
-    threads.push_back(std::thread(sumPart, std::cref(data), begin, end, std::ref(sums[i])));
-  }
-
-  for (size_t i = 0; i < threads.size(); ++i)
-  {
-    threads[i].join();
-  }
+  std::vector< double > times(5);
 
   value_t res = 0;
-  for (size_t i = 0; i < sums.size(); ++i)
+  for (size_t attempt = 0; attempt < 5; ++attempt)
   {
-    res += sums[i];
+    Clicker clicker;
+
+    size_t partSize = size / threadCount;
+
+    std::vector< std::thread > threads;
+    std::vector< value_t > sums(threadCount);
+
+    for (size_t i = 0; i < threadCount; ++i)
+    {
+      size_t begin, end;
+      begin = i * partSize;
+      if (i == threadCount - 1)
+      {
+        end = size;
+      }
+      else
+      {
+        end = (i + 1) * partSize;
+      }
+      threads.push_back(std::thread(sumPart, std::cref(data), begin, end, std::ref(sums[i])));
+    }
+
+    for (size_t i = 0; i < threads.size(); ++i)
+    {
+      threads[i].join();
+    }
+
+    res = 0;
+    for (size_t i = 0; i < sums.size(); ++i)
+    {
+      res += sums[i];
+    }
+
+    times[attempt] = clicker.millisec();
   }
 
-  double time = clicker.millisec();
+  std::sort(times.begin(), times.end());
 
-  std::cout << res << '\n';
-  std::cout << time << " ms\n";
+  for (size_t i = 0; i < times.size(); ++i)
+  {
+    std::cout << times[i] << " ms\n";
+  }
+
+  std::cout << "Median: " << times[2] << " ms\n";
+  std::cout << "Total sum: " << res << '\n';
   return 0;
 }
